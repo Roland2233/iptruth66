@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IPTruth</title>
+  <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Concert+One&family=Josefin+Sans&display=swap');
+    body {
+      margin: 0;
+      font-family: "Josefin Sans", sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .box {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      padding: 30px 40px;
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      animation: fadeIn 1.5s ease;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 25px;
+      font-family: "Concert One", sans-serif;
+    }
+    p {
+      font-size: 17px;
+      margin: 8px 0;
+      opacity: 0;
+      animation: fadeInUp 1s ease forwards;
+    }
+    strong {
+      color: #9a9aff;
+    }
+    #loadingContainer {
+      width: 100%;
+      height: 6px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 25px;
+    }
+    #loadingBar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #7b68ee, #9a9aff);
+      transition: width 0.3s ease;
+    }
+    #disguiseBar {
+      width: 100%;
+      height: 20px;
+      background: #333;
+      border-radius: 10px;
+      margin-top: 40px;
+      overflow: hidden;
+    }
+    #disguiseFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(to right, #6aff8c, #1edc35);
+      border-radius: 10px;
+      transition: width 1s ease;
+    }
+    #copyBtn {
+      margin-left: 10px;
+      background: #444;
+      border: none;
+      padding: 3px 8px;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @media (max-width: 600px) {
+      .box { padding: 25px 20px; }
+      h1 { font-size: 22px; }
+      p { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="box" data-aos="zoom-in">
+  <h1>IP Checker</h1>
+  <div id="loadingContainer"><div id="loadingBar"></div></div>
+
+  <p id="ip"><strong>IP Address:</strong> <span id="ipValue">Loading...</span> <button id="copyBtn" onclick="copyIP()">Copy</button></p>
+  <p id="city"><strong>City:</strong> Loading...</p>
+  <p id="region"><strong>Region:</strong> Loading...</p>
+  <p id="country"><strong>Country:</strong> Loading...</p>
+  <p id="zip"><strong>Postal Code:</strong> Loading...</p>
+  <p id="isp"><strong>ISP / Org:</strong> Loading...</p>
+  <p id="ip_timezone"><strong>IP Timezone:</strong> Loading...</p>
+  <p id="browser_timezone"><strong>Browser Timezone:</strong> Loading...</p>
+  <p id="browser"><strong>Browser:</strong> Loading...</p>
+  <p id="os"><strong>Operating System:</strong> Loading...</p>
+  <p id="proxy"><strong>Proxy (AbstractAPI):</strong> Checking...</p>
+  <p id="vpn"><strong>VPN (AbstractAPI):</strong> Checking...</p>
+  <p id="tor"><strong>Tor (AbstractAPI):</strong> Checking...</p>
+
+  <p style="margin-top:40px;"><strong>Disguise Accuracy:</strong> <span id="disguisePercent">0%</span></p>
+  <div id="disguiseBar"><div id="disguiseFill"></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>AOS.init();</script>
+
+<script>
+  const abstractApiKey = 'd7a920e1c911417b8f8ba85eb714975c';
+  const ipinfoToken = 'a8c7c6deb91949';
+
+  const loadingBar = document.getElementById('loadingBar');
+  const disguiseFill = document.getElementById('disguiseFill');
+  const disguisePercent = document.getElementById('disguisePercent');
+
+  let progress = 0;
+  const progressInterval = setInterval(() => {
+    if (progress < 90) {
+      progress += Math.floor(Math.random() * 7) + 4;
+      if (progress > 90) progress = 90;
+      loadingBar.style.width = progress + '%';
+    }
+  }, 300);
+
+  function animateField(id, value, delay = 0.2) {
+    const el = document.getElementById(id);
+    el.innerHTML = `<strong>${el.textContent.split(':')[0]}:</strong> ${value}`;
+    el.style.animation = 'fadeInUp 0.6s ease forwards';
+    el.style.animationDelay = delay + 's';
+  }
+
+  function copyIP() {
+    const ipText = document.getElementById('ipValue').innerText;
+    navigator.clipboard.writeText(ipText);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = "Copied!";
+    setTimeout(() => {
+      btn.textContent = "Copy";
+    }, 1500);
+  }
+
+  function detectBrowserOS() {
+    const ua = navigator.userAgent;
+    let browser = "Unknown";
+    if (ua.includes("Chrome") && !ua.includes("Edg")) browser = "Chrome";
+    else if (ua.includes("Firefox")) browser = "Firefox";
+    else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+    else if (ua.includes("Edg")) browser = "Edge";
+    else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+
+    let os = "Unknown";
+    if (ua.includes("Win")) os = "Windows";
+    else if (ua.includes("Mac")) os = "macOS";
+    else if (ua.includes("Linux")) os = "Linux";
+    else if (ua.includes("Android")) os = "Android";
+    else if (ua.includes("like Mac")) os = "iOS";
+
+    return { browser, os };
+  }
+
+  async function fetchAbstractAPI() {
+    const url = `https://ipgeolocation.abstractapi.com/v1/?api_key=${abstractApiKey}`;
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  async function fetchIPinfo() {
+    const url = `https://ipinfo.io/json?token=${ipinfoToken}`;
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  async function main() {
+    try {
+      const [abstractData, ipinfoData] = await Promise.all([fetchAbstractAPI(), fetchIPinfo()]);
+      clearInterval(progressInterval);
+      loadingBar.style.width = '100%';
+
+      const { browser, os } = detectBrowserOS();
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+
+      const ip = ipinfoData.ip || 'N/A';
+      const city = ipinfoData.city || 'N/A';
+      const region = ipinfoData.region || 'N/A';
+      const country = ipinfoData.country || 'N/A';
+      // Fixed postal code line here:
+      const zip = abstractData.location?.postal_code || ipinfoData.postal || 'N/A';
+      const isp = ipinfoData.org || 'N/A';
+      const ipTimezone = ipinfoData.timezone || (abstractData.timezone?.name || 'N/A');
+
+      const proxy = abstractData.security?.is_proxy === true;
+      const vpn = abstractData.security?.is_vpn === true;
+      const tor = abstractData.security?.is_tor === true;
+
+      let delay = 0.2;
+      document.getElementById('ipValue').innerText = ip;
+      delay += 0.1;
+      animateField('city', city, delay); delay += 0.1;
+      animateField('region', region, delay); delay += 0.1;
+      animateField('country', country, delay); delay += 0.1;
+      animateField('zip', zip, delay); delay += 0.1;
+      animateField('isp', isp, delay); delay += 0.1;
+      animateField('ip_timezone', ipTimezone, delay); delay += 0.1;
+      animateField('browser_timezone', browserTz, delay); delay += 0.1;
+      animateField('browser', browser, delay); delay += 0.1;
+      animateField('os', os, delay); delay += 0.1;
+      animateField('proxy', proxy ? "Yes" : "No", delay); delay += 0.1;
+      animateField('vpn', vpn ? "Yes" : "No", delay); delay += 0.1;
+      animateField('tor', tor ? "Yes" : "No", delay); delay += 0.1;
+
+      let disguise = 100;
+      if (proxy) disguise -= 40;
+      if (vpn) disguise -= 40;
+      if (tor) disguise -= 20;
+      if (browserTz !== ipTimezone) disguise -= 15;
+      if (disguise < 0) disguise = 0;
+
+      disguisePercent.textContent = disguise + "%";
+      disguiseFill.style.width = disguise + "%";
+
+    } catch (e) {
+      clearInterval(progressInterval);
+      loadingBar.style.width = '100%';
+      document.querySelector('.box').innerHTML += `<p style="color:#ff6b6b;">Error fetching data.</p>`;
+      console.error("Error fetching IP or location info:", e);
+    }
+  }
+
+  main();
+</script>
+
+</body>
+</html>
